@@ -1,0 +1,176 @@
+# Default values for azure-agent.
+# This is a YAML-formatted file.
+
+# ==============================================================================
+# CẤU HÌNH GLOBAL (TRUNG LẬP)
+# ==============================================================================
+global:
+  # Registry dùng chung cho các image (ví dụ: my-registry.com hoặc để trống nếu khai báo kèm repo)
+  imageRegistry: ""
+  # Image pull secrets dùng chung cấp global (ví dụ: ["my-pull-secret"])
+  imagePullSecrets: []
+
+# Số lượng agent pods
+replicaCount: 2
+
+# Tên override cho các resource K8s
+nameOverride: ""
+fullnameOverride: "k8s-agent"
+
+# Image pull secret dùng kéo image từ private registry (mặc định để trống trung lập)
+# Khi deploy truyền vào qua cờ: --set imagePullSecrets[0].name=my-pull-secret (hoặc global.imagePullSecrets)
+imagePullSecrets: []
+
+# Thời gian chờ Pod kết thúc gracefully (đủ để unregister agent và hoàn tất công việc dở dang)
+terminationGracePeriodSeconds: 600
+
+# ==============================================================================
+# CẤU HÌNH SECRET (ĐƯỢC TẠO THỦ CÔNG TỪ FILE .env)
+# ==============================================================================
+# QUAN TRỌNG: Secret này KHÔNG do Helm sinh ra để bảo vệ an toàn thông tin nhạy cảm.
+# Hãy tạo Secret thủ công bằng lệnh:
+#   kubectl create secret generic azure-agent-secret --from-env-file=.env -n <namespace>
+#
+# File .env mẫu tham khảo tại `.env.example`:
+#   AZP_URL=https://dev.azure.com/your-organization
+#   AZP_TOKEN=<personal-access-token>
+#   AZP_POOL=your-agent-pool
+secret:
+  name: "azure-agent-secret"
+  keys:
+    azpUrl: "AZP_URL"
+    azpToken: "AZP_TOKEN"
+    azpPool: "AZP_POOL"
+
+# ==============================================================================
+# SERVICE ACCOUNT CHO AGENT POD
+# ==============================================================================
+serviceAccount:
+  # Có tạo ServiceAccount mới hay không (mặc định false vì sử dụng SA có sẵn như admin)
+  create: false
+  name: "admin"
+  automountServiceAccountToken: true
+  annotations: {}
+
+# ==============================================================================
+# CẤU HÌNH CONTAINER 1: AZURE DEVOPS AGENT
+# ==============================================================================
+agent:
+  image:
+    registry: ""
+    # Tên repository image agent (mặc định trung lập; truyền qua CLI khi deploy: --set agent.image.repository=...)
+    repository: "azure-agent"
+    tag: "v3"
+    pullPolicy: Always
+
+  # Cho phép chạy agent dưới quyền root
+  allowRunAsRoot: "1"
+
+  # Tiền tố tên Agent hiển thị trên Azure DevOps (ví dụ: K8S-AGENT-01, K8S-AGENT-02)
+  agentNamePrefix: "K8S-AGENT"
+
+  # Địa chỉ Docker host kết nối tới sidecar DinD (chạy cùng Pod qua localhost)
+  dockerHost: "tcp://localhost:2375"
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+      ephemeral-storage: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+      ephemeral-storage: "5Gi"
+
+  # Các biến môi trường bổ sung cho Agent container nếu cần
+  extraEnv: []
+
+  # Nguồn biến môi trường bổ sung (configMapRef hoặc secretRef)
+  extraEnvFrom: []
+
+  # Mount volume bổ sung vào Agent container
+  extraVolumeMounts: []
+
+# ==============================================================================
+# CẤU HÌNH CONTAINER 2: DOCKER-IN-DOCKER (DinD) SIDECAR
+# ==============================================================================
+dind:
+  enabled: true
+  image:
+    repository: docker
+    tag: 24-dind
+    pullPolicy: IfNotPresent
+
+  # Bắt buộc privileged để dockerd hoạt động bên trong container
+  privileged: true
+
+  # Cấu hình TLS (để trống nếu dùng giao tiếp HTTP nội bộ pod qua localhost:2375)
+  tlsCertDir: ""
+
+  # Cấu hình /etc/docker/daemon.json
+  daemonJson:
+    logDriver: "json-file"
+    logMaxSize: "10m"
+    logMaxFile: "3"
+    gcEnabled: true
+    gcDefaultKeepStorage: "5GB"
+    maxConcurrentUploads: 8
+
+  # Tự động dọn dẹp các cache và image không dùng định kỳ
+  autoPrune:
+    enabled: true
+    intervalSeconds: 1800 # 30 phút dọn một lần
+    filterUntil: "30m"    # Xóa các image/cache cũ hơn 30 phút
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+      ephemeral-storage: "2Gi"
+    limits:
+      cpu: "3000m"
+      memory: "4Gi"
+      ephemeral-storage: "10Gi"
+
+  extraEnv: []
+  extraVolumeMounts: []
+
+# ==============================================================================
+# CẤU HÌNH MOUNT KUBECONFIG (ĐỂ AGENT CÓ THỂ DEPLOY TRỰC TIẾP LÊN K8S)
+# ==============================================================================
+kubeconfig:
+  enabled: true
+  secretName: "kubeconfig"
+  secretKey: "config"
+  mountPath: "/root/.kube"
+  subPath: "config"
+
+# Volumes bổ sung cấp pod nếu cần
+extraVolumes: []
+
+# ==============================================================================
+# CRONJOB RESTART ĐỊNH KỲ (LÀM MỚI ĐĨA ĐỆM VÀ RESET TRẠNG THÁI)
+# ==============================================================================
+nightlyRestart:
+  enabled: true
+  name: "azp-agent-nightly-restart"
+  schedule: "0 2 * * *" # 02:00 AM mỗi ngày
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+
+  # ServiceAccount thực hiện rollout restart (mặc định dùng chung SA admin của agent)
+  serviceAccountName: "admin"
+
+  image:
+    repository: bitnami/kubectl
+    tag: latest
+    pullPolicy: IfNotPresent
+
+# ==============================================================================
+# NODE SELECTOR / TOLERATIONS / AFFINITY
+# ==============================================================================
+nodeSelector: {}
+tolerations: []
+affinity: {}
+

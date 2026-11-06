@@ -1,0 +1,23 @@
+1. Azure DevOps Agent chart đã được triển khai thành công!
+
+   Release Name: {{ .Release.Name }}
+   Namespace:    {{ .Release.Namespace }}
+
+2. LƯU Ý QUAN TRỌNG VỀ SECRET:
+   Chart này yêu cầu Secret "{{ include "azure-agent.secretName" . }}" đã được tạo trước đó từ file .env:
+   $ kubectl create secret generic {{ include "azure-agent.secretName" . }} --from-env-file=.env -n {{ .Release.Namespace }}
+
+   Secret cần chứa 3 key bắt buộc:
+   - {{ .Values.secret.keys.azpUrl | default "AZP_URL" }} : URL Azure DevOps / TFS Collection
+   - {{ .Values.secret.keys.azpToken | default "AZP_TOKEN" }} : PAT Token (Agent Pools read & manage)
+   - {{ .Values.secret.keys.azpPool | default "AZP_POOL" }} : Tên Agent Pool
+
+3. Kiểm tra trạng thái Pods:
+   $ kubectl get pods -n {{ .Release.Namespace }} -l app={{ include "azure-agent.fullname" . }}
+
+4. Theo dõi logs Agent:
+   $ kubectl logs -n {{ .Release.Namespace }} {{ include "azure-agent.fullname" . }}-0 -c azp-agent -f
+
+5. Theo dõi logs DinD Sidecar:
+   $ kubectl logs -n {{ .Release.Namespace }} {{ include "azure-agent.fullname" . }}-0 -c dind -f
+

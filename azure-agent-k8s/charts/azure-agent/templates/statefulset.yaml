@@ -1,0 +1,166 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "azure-agent.fullname" . }}
+  labels:
+    {{- include "azure-agent.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "azure-agent.fullname" . | quote }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "azure-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "azure-agent.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "azure-agent.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      {{- include "azure-agent.imagePullSecrets" . | nindent 6 }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      containers:
+        # Container 1: Azure DevOps / TFS Agent
+        - name: azp-agent
+          image: {{ include "azure-agent.image" . | quote }}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              # Tự động định dạng tên Agent đẹp và đồng nhất: ví dụ K8S-AGENT-01, K8S-AGENT-02
+              POD_INDEX=$(hostname | awk -F'-' '{print $NF}')
+              if [[ "$POD_INDEX" =~ ^[0-9]+$ ]]; then
+                export AZP_AGENT_NAME=$(printf "{{ .Values.agent.agentNamePrefix }}-%02d" $((POD_INDEX + 1)))
+              else
+                export AZP_AGENT_NAME="{{ .Values.agent.agentNamePrefix }}-$(hostname)"
+              fi
+              echo "==> Khởi động Azure Pipelines Agent với tên đại diện: ${AZP_AGENT_NAME}"
+              exec /azp/start.sh
+          env:
+            - name: AGENT_ALLOW_RUNASROOT
+              value: {{ .Values.agent.allowRunAsRoot | quote }}
+            - name: AZP_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "azure-agent.secretName" . }}
+                  key: {{ .Values.secret.keys.azpUrl | default "AZP_URL" }}
+            - name: AZP_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "azure-agent.secretName" . }}
+                  key: {{ .Values.secret.keys.azpToken | default "AZP_TOKEN" }}
+            - name: AZP_POOL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "azure-agent.secretName" . }}
+                  key: {{ .Values.secret.keys.azpPool | default "AZP_POOL" }}
+            - name: DOCKER_HOST
+              value: {{ .Values.agent.dockerHost | quote }}
+            {{- if .Values.kubeconfig.enabled }}
+            - name: KUBECONFIG
+              value: "{{ .Values.kubeconfig.mountPath }}/{{ .Values.kubeconfig.subPath }}"
+            {{- end }}
+            {{- with .Values.agent.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.agent.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or .Values.kubeconfig.enabled .Values.agent.extraVolumeMounts }}
+          volumeMounts:
+            {{- if .Values.kubeconfig.enabled }}
+            - name: kubeconfig-vol
+              mountPath: {{ .Values.kubeconfig.mountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- with .Values.agent.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+          {{- with .Values.agent.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+
+        {{- if .Values.dind.enabled }}
+        # Container 2: Docker-in-Docker Sidecar (Tự dọn dẹp ngầm & Giới hạn log)
+        - name: dind
+          image: "{{ .Values.dind.image.repository }}:{{ .Values.dind.image.tag }}"
+          imagePullPolicy: {{ .Values.dind.image.pullPolicy }}
+          securityContext:
+            privileged: {{ .Values.dind.privileged }}
+          env:
+            - name: DOCKER_TLS_CERTDIR
+              value: {{ .Values.dind.tlsCertDir | quote }}
+            {{- with .Values.dind.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          command: ["sh", "-c"]
+          args:
+            - |
+              mkdir -p /etc/docker && cat << 'EOF' > /etc/docker/daemon.json
+              {
+                "log-driver": "{{ .Values.dind.daemonJson.logDriver }}",
+                "log-opts": {
+                  "max-size": "{{ .Values.dind.daemonJson.logMaxSize }}",
+                  "max-file": "{{ .Values.dind.daemonJson.logMaxFile }}"
+                },
+                "builder": {
+                  "gc": {
+                    "enabled": {{ .Values.dind.daemonJson.gcEnabled }},
+                    "defaultKeepStorage": "{{ .Values.dind.daemonJson.gcDefaultKeepStorage }}"
+                  }
+                },
+                "max-concurrent-uploads": {{ .Values.dind.daemonJson.maxConcurrentUploads }}
+              }
+              EOF
+
+              {{- if .Values.dind.autoPrune.enabled }}
+              # Tự động dọn dẹp ngầm mỗi {{ .Values.dind.autoPrune.intervalSeconds }}s các image và cache cũ hơn {{ .Values.dind.autoPrune.filterUntil }}
+              (
+                while true; do
+                  sleep {{ .Values.dind.autoPrune.intervalSeconds }}
+                  docker system prune -af --filter "until={{ .Values.dind.autoPrune.filterUntil }}" >/dev/null 2>&1 || true
+                done
+              ) &
+              {{- end }}
+
+              exec dockerd-entrypoint.sh
+          {{- with .Values.dind.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.dind.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        {{- end }}
+
+      {{- if or .Values.kubeconfig.enabled .Values.extraVolumes }}
+      volumes:
+        {{- if .Values.kubeconfig.enabled }}
+        - name: kubeconfig-vol
+          secret:
+            secretName: {{ .Values.kubeconfig.secretName }}
+            items:
+              - key: {{ .Values.kubeconfig.secretKey }}
+                path: {{ .Values.kubeconfig.subPath }}
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+

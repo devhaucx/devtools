@@ -1,0 +1,17 @@
+# Environment files containing sensitive credentials
+.env
+.env.*
+!.env.example
+
+# Kubernetes local files
+*.kubeconfig
+dev.yaml
+prod.yaml
+
+# Helm package files
+*.tgz
+
+# OS files
+.DS_Store
+Thumbs.db
+

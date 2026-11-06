@@ -1,0 +1,14 @@
+apiVersion: v2
+name: azure-agent
+description: Helm chart for Azure DevOps Self-Hosted Agent on Kubernetes with Docker-in-Docker sidecar
+type: application
+version: 0.1.0
+appVersion: "v3"
+keywords:
+  - azure-devops
+  - azure-pipelines
+  - tfs
+  - agent
+  - dind
+  - kubernetes
+
