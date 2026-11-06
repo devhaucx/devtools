@@ -146,6 +146,28 @@
       margin-bottom: 1rem;
       flex-grow: 1;
     }
+    .version-chips-wrap {
+      margin-bottom: 1rem;
+    }
+    .version-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .version-chip {
+      font-size: 0.75rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: ui-monospace, monospace;
+    }
+    .version-chip.latest {
+      border-color: #0284c7;
+      color: var(--accent);
+      font-weight: 600;
+    }
     .card-footer {
       margin-top: 1rem;
       padding-top: 1rem;
@@ -201,39 +223,9 @@ helm search repo devtools</code></pre>
     </div>
 
     <h2 class="section-title">📦 Available Charts</h2>
-    <div class="grid">
-      <!-- Card 1: azure-agent -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">azure-agent</h3>
-          <span class="chart-version">v0.1.0</span>
-        </div>
-        <p class="card-desc">
-          Self-hosted Azure DevOps / TFS Agent on Kubernetes with Docker-in-Docker (DinD) sidecar. Supports container image builds, helm deployments, and kubectl commands directly from pipelines.
-        </p>
-        <pre><code>helm install my-agent devtools/azure-agent \
-  --namespace devops --create-namespace</code></pre>
-        <div class="card-footer">
-          <span style="font-size: 0.8rem; color: var(--text-muted);">App Version: v3</span>
-          <a href="https://github.com/devhaucx/devtools/tree/main/azure-agent-k8s">Documentation &rarr;</a>
-        </div>
-      </div>
-
-      <!-- Card 2: cronjob -->
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">cronjob</h3>
-          <span class="chart-version">v0.1.0</span>
-        </div>
-        <p class="card-desc">
-          Production-ready Kubernetes CronJobs chart with zero-stuck auto-cleanup (TTL: 0, GracePeriod: 0). Centralized defaults, non-privileged security contexts, and safe secret injection.
-        </p>
-        <pre><code>helm install my-cronjob devtools/cronjob \
-  --namespace devops --create-namespace</code></pre>
-        <div class="card-footer">
-          <span style="font-size: 0.8rem; color: var(--text-muted);">App Version: 1.0.0</span>
-          <a href="https://github.com/devhaucx/devtools/tree/main/cronjob-k8s">Documentation &rarr;</a>
-        </div>
+    <div id="charts-grid" class="grid">
+      <div id="loading" style="grid-column: 1 / -1; text-align: center; padding: 2.5rem; color: var(--text-muted); background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
+        ⏳ Loading charts dynamically from index.yaml...
       </div>
     </div>
 
@@ -241,12 +233,87 @@ helm search repo devtools</code></pre>
       <h2 class="section-title">🐳 OCI Registry (GHCR)</h2>
       <p style="color: var(--text-muted); font-size: 0.95rem;">You can also install charts directly without adding a repository via OCI:</p>
       <pre><code>helm install my-agent oci://ghcr.io/devhaucx/devtools/azure-agent --version 0.1.0
-helm install my-cronjob oci://ghcr.io/devhaucx/devtools/cronjob --version 0.1.0</code></pre>
+helm install my-cronjob oci://ghcr.io/devhaucx/devtools/cronjob --version 0.1.1</code></pre>
     </div>
 
     <footer>
       <p>Maintained by <a href="https://github.com/devhaucx">devhaucx</a>. Released under the MIT License.</p>
     </footer>
   </div>
+
+  <!-- Dynamic index.yaml fetcher & renderer -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+  <script>
+    async function loadCharts() {
+      const container = document.getElementById('charts-grid');
+      const loading = document.getElementById('loading');
+
+      try {
+        const res = await fetch('./index.yaml?t=' + Date.now());
+        if (!res.ok) throw new Error(`HTTP ${res.status} (${res.statusText})`);
+
+        const yamlText = await res.text();
+        const data = jsyaml.load(yamlText);
+
+        if (!data || !data.entries || Object.keys(data.entries).length === 0) {
+          throw new Error('No chart entries found in index.yaml');
+        }
+
+        container.innerHTML = '';
+        const chartNames = Object.keys(data.entries).sort();
+
+        chartNames.forEach(name => {
+          const versions = data.entries[name];
+          if (!versions || versions.length === 0) return;
+
+          const latest = versions[0];
+
+          let docLink = `https://github.com/devhaucx/devtools`;
+          if (name === 'azure-agent') {
+            docLink = `https://github.com/devhaucx/devtools/tree/main/azure-agent-k8s`;
+          } else if (name === 'cronjob') {
+            docLink = `https://github.com/devhaucx/devtools/tree/main/cronjob-k8s`;
+          }
+
+          const versionChips = versions.map((v, idx) => {
+            if (idx === 0) {
+              return `<span class="version-chip latest" title="Latest release">v${v.version}</span>`;
+            }
+            return `<span class="version-chip" title="Previous release">v${v.version}</span>`;
+          }).join('');
+
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.innerHTML = `
+            <div class="card-header">
+              <h3 class="card-title">${latest.name}</h3>
+              <span class="chart-version">v${latest.version}</span>
+            </div>
+            <p class="card-desc">${latest.description || 'Kubernetes Helm Chart'}</p>
+            
+            <div class="version-chips-wrap">
+              <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Available Versions:</span>
+              <div class="version-chips">${versionChips}</div>
+            </div>
+
+            <pre><code>helm install my-${latest.name} devtools/${latest.name} --version ${latest.version}</code></pre>
+            
+            <div class="card-footer">
+              <span style="font-size: 0.8rem; color: var(--text-muted);">App Version: ${latest.appVersion || 'latest'}</span>
+              <a href="${docLink}" target="_blank" rel="noopener">Documentation &rarr;</a>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+
+      } catch (err) {
+        if (loading) {
+          loading.innerHTML = `<span style="color: #ef4444;">⚠️ Failed to load index.yaml: ${err.message}</span>`;
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadCharts);
+  </script>
 </body>
 </html>
