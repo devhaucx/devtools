@@ -9,7 +9,9 @@
     :root {
       --bg: #0f172a;
       --card-bg: #1e293b;
+      --card-hover: #24344d;
       --border: #334155;
+      --border-accent: #0284c7;
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --accent: #38bdf8;
@@ -22,10 +24,10 @@
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
-      padding: 2rem 1rem;
+      padding: 2.5rem 1rem;
     }
     .container {
-      max-width: 900px;
+      max-width: 960px;
       margin: 0 auto;
     }
     header {
@@ -35,20 +37,22 @@
       border-bottom: 1px solid var(--border);
     }
     .logo {
-      width: 72px;
-      height: 72px;
-      margin-bottom: 1rem;
+      width: 76px;
+      height: 76px;
+      margin-bottom: 1.25rem;
+      filter: drop-shadow(0 4px 12px rgba(56, 189, 248, 0.2));
     }
     h1 {
       font-size: 2.25rem;
       font-weight: 700;
       color: var(--text);
       margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
     }
     .tagline {
       color: var(--text-muted);
-      font-size: 1.125rem;
-      max-width: 600px;
+      font-size: 1.1rem;
+      max-width: 620px;
       margin: 0 auto 1.5rem auto;
     }
     .badges {
@@ -60,8 +64,8 @@
     .badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0.75rem;
+      gap: 0.45rem;
+      padding: 0.4rem 0.85rem;
       border-radius: 9999px;
       font-size: 0.85rem;
       font-weight: 500;
@@ -74,11 +78,12 @@
     .badge:hover {
       border-color: var(--accent);
       color: var(--accent);
+      transform: translateY(-1px);
     }
     .section-title {
-      font-size: 1.5rem;
+      font-size: 1.35rem;
       font-weight: 600;
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
       color: var(--text);
       display: flex;
       align-items: center;
@@ -95,16 +100,15 @@
       background: var(--code-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 1rem;
+      padding: 0.85rem 1rem;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 0.9rem;
+      font-size: 0.875rem;
       color: #e2e8f0;
       overflow-x: auto;
-      margin-top: 0.75rem;
     }
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
       gap: 1.5rem;
       margin-bottom: 2.5rem;
     }
@@ -115,79 +119,122 @@
       padding: 1.5rem;
       display: flex;
       flex-direction: column;
-      transition: transform 0.2s, border-color 0.2s;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      height: 100%;
     }
     .card:hover {
       border-color: var(--accent);
+      background: var(--card-hover);
       transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+    .card-top {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
     }
     .card-header {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 0.75rem;
+      align-items: center;
+      margin-bottom: 0.85rem;
     }
     .card-title {
-      font-size: 1.25rem;
-      font-weight: 600;
+      font-size: 1.3rem;
+      font-weight: 700;
       color: var(--text);
     }
-    .chart-version {
-      font-size: 0.75rem;
+    .chart-version-badge {
+      font-size: 0.8rem;
       background: #0284c7;
-      color: #fff;
-      padding: 0.2rem 0.5rem;
+      color: #ffffff;
+      padding: 0.25rem 0.65rem;
       border-radius: 6px;
       font-weight: 600;
+      font-family: ui-monospace, monospace;
+      letter-spacing: 0.02em;
     }
     .card-desc {
       color: var(--text-muted);
-      font-size: 0.95rem;
-      margin-bottom: 1rem;
+      font-size: 0.925rem;
+      line-height: 1.55;
+      margin-bottom: 1.25rem;
+      min-height: 3rem;
       flex-grow: 1;
     }
-    .version-chips-wrap {
+    .version-box {
+      background: rgba(11, 17, 32, 0.7);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.6rem 0.85rem;
       margin-bottom: 1rem;
-    }
-    .version-chips {
       display: flex;
+      align-items: center;
+      gap: 0.6rem;
       flex-wrap: wrap;
-      gap: 0.4rem;
+    }
+    .version-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
     .version-chip {
+      display: inline-flex;
+      align-items: center;
       font-size: 0.75rem;
       padding: 0.15rem 0.5rem;
-      border-radius: 4px;
-      background: var(--code-bg);
+      border-radius: 5px;
+      background: var(--card-bg);
       border: 1px solid var(--border);
-      color: var(--text-muted);
+      color: #cbd5e1;
       font-family: ui-monospace, monospace;
+      text-decoration: none;
     }
     .version-chip.latest {
-      border-color: #0284c7;
+      border-color: rgba(56, 189, 248, 0.5);
+      background: rgba(2, 132, 199, 0.2);
       color: var(--accent);
       font-weight: 600;
     }
+    .card-command {
+      margin-bottom: 1rem;
+    }
+    .card-command pre {
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
     .card-footer {
-      margin-top: 1rem;
       padding-top: 1rem;
       border-top: 1px solid var(--border);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .card-footer a {
+    .app-badge {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .doc-link {
       color: var(--accent);
       text-decoration: none;
       font-size: 0.875rem;
-      font-weight: 500;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      transition: color 0.15s;
     }
-    .card-footer a:hover {
+    .doc-link:hover {
+      color: #7dd3fc;
       text-decoration: underline;
     }
     footer {
       text-align: center;
-      padding-top: 2rem;
+      padding-top: 2.5rem;
       color: var(--text-muted);
       font-size: 0.875rem;
       border-top: 1px solid var(--border);
@@ -195,6 +242,9 @@
     footer a {
       color: var(--accent);
       text-decoration: none;
+    }
+    footer a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -216,7 +266,7 @@
 
     <div class="quickstart">
       <h2 class="section-title">⚡ Quick Start</h2>
-      <p style="color: var(--text-muted); font-size: 0.95rem;">Add this Helm repository to your local CLI to search and install charts:</p>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 0.75rem;">Add this Helm repository to your local CLI to search and install charts:</p>
       <pre><code>helm repo add devtools https://devhaucx.github.io/devtools
 helm repo update
 helm search repo devtools</code></pre>
@@ -224,14 +274,14 @@ helm search repo devtools</code></pre>
 
     <h2 class="section-title">📦 Available Charts</h2>
     <div id="charts-grid" class="grid">
-      <div id="loading" style="grid-column: 1 / -1; text-align: center; padding: 2.5rem; color: var(--text-muted); background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
-        ⏳ Loading charts dynamically from index.yaml...
+      <div id="loading" style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: var(--text-muted); background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;">
+        ⏳ Loading charts from index.yaml...
       </div>
     </div>
 
     <div class="quickstart">
       <h2 class="section-title">🐳 OCI Registry (GHCR)</h2>
-      <p style="color: var(--text-muted); font-size: 0.95rem;">You can also install charts directly without adding a repository via OCI:</p>
+      <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 0.75rem;">You can also install charts directly without adding a repository via OCI:</p>
       <pre><code>helm install my-agent oci://ghcr.io/devhaucx/devtools/azure-agent --version 0.1.0
 helm install my-cronjob oci://ghcr.io/devhaucx/devtools/cronjob --version 0.1.1</code></pre>
     </div>
@@ -244,6 +294,11 @@ helm install my-cronjob oci://ghcr.io/devhaucx/devtools/cronjob --version 0.1.1<
   <!-- Dynamic index.yaml fetcher & renderer -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
   <script>
+    function formatAppVersion(v) {
+      if (!v) return 'latest';
+      return v.startsWith('v') ? v : 'v' + v;
+    }
+
     async function loadCharts() {
       const container = document.getElementById('charts-grid');
       const loading = document.getElementById('loading');
@@ -275,32 +330,37 @@ helm install my-cronjob oci://ghcr.io/devhaucx/devtools/cronjob --version 0.1.1<
             docLink = `https://github.com/devhaucx/devtools/tree/main/cronjob-k8s`;
           }
 
+          // Build separated version chips with space
           const versionChips = versions.map((v, idx) => {
             if (idx === 0) {
               return `<span class="version-chip latest" title="Latest release">v${v.version}</span>`;
             }
             return `<span class="version-chip" title="Previous release">v${v.version}</span>`;
-          }).join('');
+          }).join(' ');
 
           const card = document.createElement('div');
           card.className = 'card';
           card.innerHTML = `
-            <div class="card-header">
-              <h3 class="card-title">${latest.name}</h3>
-              <span class="chart-version">v${latest.version}</span>
-            </div>
-            <p class="card-desc">${latest.description || 'Kubernetes Helm Chart'}</p>
-            
-            <div class="version-chips-wrap">
-              <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">Available Versions:</span>
-              <div class="version-chips">${versionChips}</div>
+            <div class="card-top">
+              <div class="card-header">
+                <h3 class="card-title">${latest.name}</h3>
+                <span class="chart-version-badge">v${latest.version}</span>
+              </div>
+              <p class="card-desc">${latest.description || 'Kubernetes Helm Chart'}</p>
+              
+              <div class="version-box">
+                <span class="version-label">Versions:</span>
+                ${versionChips}
+              </div>
+
+              <div class="card-command">
+                <pre><code>helm install my-${latest.name} devtools/${latest.name} --version ${latest.version}</code></pre>
+              </div>
             </div>
 
-            <pre><code>helm install my-${latest.name} devtools/${latest.name} --version ${latest.version}</code></pre>
-            
             <div class="card-footer">
-              <span style="font-size: 0.8rem; color: var(--text-muted);">App Version: ${latest.appVersion || 'latest'}</span>
-              <a href="${docLink}" target="_blank" rel="noopener">Documentation &rarr;</a>
+              <span class="app-badge">App: ${formatAppVersion(latest.appVersion)}</span>
+              <a href="${docLink}" target="_blank" rel="noopener" class="doc-link">Docs &rarr;</a>
             </div>
           `;
           container.appendChild(card);
