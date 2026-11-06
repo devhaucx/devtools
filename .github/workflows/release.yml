@@ -44,11 +44,12 @@ jobs:
           ls -la .cr-release-packages
 
       - name: Publish to GitHub Releases & GitHub Pages
-        uses: helm/chart-releaser-action@v1.6.0
+        uses: helm/chart-releaser-action@v1.9.0
         with:
           config: cr.yaml
           skip_packaging: "true"
           skip_existing: "true"
+          mark_as_latest: "false"
           pages_branch: gh-pages
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
