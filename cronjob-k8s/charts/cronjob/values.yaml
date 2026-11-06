@@ -41,8 +41,8 @@ jobDefaults:
   # Chính sách đồng thời khi lịch trùng nhau: Forbid (không cho chạy đè lên nhau)
   concurrencyPolicy: "Forbid"
 
-  # Múi giờ chạy cronjob (K8s v1.27+)
-  timeZone: "Asia/Ho_Chi_Minh"
+  # Múi giờ chạy cronjob (chỉ dùng cho K8s v1.27+, để trống nếu cụm K8s < v1.27)
+  timeZone: ""
 
 # Tài nguyên CPU / RAM mặc định
 resources:
