@@ -295,8 +295,10 @@ helm install my-cronjob oci://ghcr.io/devhaucx/devtools/cronjob --version 0.1.1<
   <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
   <script>
     function formatAppVersion(v) {
-      if (!v) return 'latest';
-      return v.startsWith('v') ? v : 'v' + v;
+      if (!v) return '1.0.0';
+      let clean = v.toString().replace(/^v/, '');
+      if (!clean.includes('.')) clean = clean + '.0.0';
+      return clean;
     }
 
     async function loadCharts() {
@@ -359,7 +361,7 @@ helm install my-cronjob oci://ghcr.io/devhaucx/devtools/cronjob --version 0.1.1<
             </div>
 
             <div class="card-footer">
-              <span class="app-badge">App: ${formatAppVersion(latest.appVersion)}</span>
+              <span class="app-badge">App Version: ${formatAppVersion(latest.appVersion)}</span>
               <a href="${docLink}" target="_blank" rel="noopener" class="doc-link">Docs &rarr;</a>
             </div>
           `;
