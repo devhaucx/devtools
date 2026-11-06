@@ -120,7 +120,7 @@ steps:
 | `secret.name` | `azure-agent-secret` | Tên Secret K8s chứa URL, Token, Pool |
 | `serviceAccount.name` | `admin` | Tên ServiceAccount được gán cho Pod |
 | `agent.image.repository` | `azure-agent` | Repository image Agent |
-| `agent.image.tag` | `v3` | Tag image Agent |
+| `agent.image.tag` | `3.0.0` | Tag image Agent |
 | `agent.agentNamePrefix` | `K8S-AGENT` | Tiền tố tên Agent hiển thị trên Azure DevOps |
 | `agent.resources` | *500m/512Mi - 2000m/2Gi* | Giới hạn CPU / RAM cho Agent |
 | `dind.enabled` | `true` | Bật/tắt Docker-in-Docker sidecar |

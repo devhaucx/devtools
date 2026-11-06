@@ -60,7 +60,7 @@ agent:
     registry: ""
     # Tên repository image agent (mặc định trung lập; truyền qua CLI khi deploy: --set agent.image.repository=...)
     repository: "azure-agent"
-    tag: "v3"
+    tag: "3.0.0"
     pullPolicy: Always
 
   # Cho phép chạy agent dưới quyền root
