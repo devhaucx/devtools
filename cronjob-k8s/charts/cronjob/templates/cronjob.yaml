@@ -1,0 +1,230 @@
+{{- $chart_name := include "cronjobs.fullname" . }}
+{{- $chart_labels := include "cronjobs.labels" . }}
+{{- $chart_selector_labels := include "cronjobs.selectorLabels" . }}
+{{- $service_account_name := include "cronjobs.serviceAccountName" . }}
+{{- $default_registry := .Values.image.registry }}
+{{- $default_tag := .Values.image.tag | default .Chart.AppVersion }}
+{{- $default_image_pull_secrets := .Values.imagePullSecrets }}
+
+{{- range $name, $job := .Values.jobs }}
+{{- /* Xác định image hoàn chỉnh cho từng job */ -}}
+{{- $job_registry := default $default_registry (and .image .image.registry) }}
+{{- $job_repo := default $.Values.image.repository (and .image .image.repository) }}
+{{- $job_tag := default $default_tag (and .image .image.tag) }}
+{{- $image := printf "%s:%s" $job_repo $job_tag }}
+{{- if $job_registry }}
+  {{- $image = printf "%s/%s:%s" $job_registry $job_repo $job_tag }}
+{{- end }}
+
+{{- /* Gộp biến môi trường chung và riêng */ -}}
+{{- $env := default list $.Values.env }}
+{{- if .env }}
+  {{- $env = concat $env .env }}
+{{- end }}
+
+{{- /* Checksum để tự động rollout khi cấu hình thay đổi */ -}}
+{{- $checksum := toYaml . | sha256sum | trunc 20 | quote }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ $chart_name }}-{{ $name }}
+  labels:
+    {{- $chart_labels | nindent 4 }}
+    app.kubernetes.io/component: cronjob
+    cronjob.name: {{ $name | quote }}
+  annotations:
+    values/checksum: {{ $checksum }}
+spec:
+  concurrencyPolicy: {{ default (default "Forbid" $.Values.jobDefaults.concurrencyPolicy) .concurrencyPolicy }}
+  {{- $failedLimit := $.Values.jobDefaults.failedJobsHistoryLimit }}
+  {{- if hasKey . "failedJobsHistoryLimit" }}
+    {{- $failedLimit = .failedJobsHistoryLimit }}
+  {{- end }}
+  {{- if not (kindIs "invalid" $failedLimit) }}
+  failedJobsHistoryLimit: {{ $failedLimit }}
+  {{- end }}
+  {{- /* successfulJobsHistoryLimit: đặt 0 để xóa sạch, không giữ lại Pod ở trạng thái Completed */ -}}
+  {{- $successLimit := $.Values.jobDefaults.successfulJobsHistoryLimit }}
+  {{- if hasKey . "successfulJobsHistoryLimit" }}
+    {{- $successLimit = .successfulJobsHistoryLimit }}
+  {{- end }}
+  {{- if not (kindIs "invalid" $successLimit) }}
+  successfulJobsHistoryLimit: {{ $successLimit }}
+  {{- end }}
+  schedule: {{ .schedule | quote }}
+  {{- if or .suspend (and (hasKey . "suspend") .suspend) }}
+  suspend: {{ .suspend }}
+  {{- end }}
+  {{- $timeZone := default $.Values.jobDefaults.timeZone .timeZone }}
+  {{- if $timeZone }}
+  timeZone: {{ $timeZone | quote }}
+  {{- end }}
+  {{- $startingDeadline := default $.Values.jobDefaults.startingDeadlineSeconds .startingDeadlineSeconds }}
+  {{- if $startingDeadline }}
+  startingDeadlineSeconds: {{ $startingDeadline }}
+  {{- end }}
+  jobTemplate:
+    metadata:
+      labels:
+        {{- $chart_selector_labels | nindent 8 }}
+        cronjob.name: {{ $name | quote }}
+    spec:
+      {{- /* Tự động kill job nếu treo quá thời gian cho phép */ -}}
+      {{- $activeDeadline := $.Values.jobDefaults.activeDeadlineSeconds }}
+      {{- if hasKey . "activeDeadlineSeconds" }}
+        {{- $activeDeadline = .activeDeadlineSeconds }}
+      {{- end }}
+      {{- if $activeDeadline }}
+      activeDeadlineSeconds: {{ $activeDeadline }}
+      {{- end }}
+      {{- /* Số lần retry tối đa khi fail */ -}}
+      {{- $backoffLimit := $.Values.jobDefaults.backoffLimit }}
+      {{- if hasKey . "backoffLimit" }}
+        {{- $backoffLimit = .backoffLimit }}
+      {{- end }}
+      {{- if not (kindIs "invalid" $backoffLimit) }}
+      backoffLimit: {{ $backoffLimit }}
+      {{- end }}
+      {{- if .completions }}
+      completions: {{ .completions }}
+      {{- end }}
+      {{- if .parallelism }}
+      parallelism: {{ .parallelism }}
+      {{- end }}
+      {{- /* QUAN TRỌNG: Xóa sạch Pod/Job ngay khi chạy xong (0 = xóa lập tức, không stuck Completed) */ -}}
+      {{- $ttl := $.Values.jobDefaults.ttlSecondsAfterFinished }}
+      {{- if hasKey . "ttlSecondsAfterFinished" }}
+        {{- $ttl = .ttlSecondsAfterFinished }}
+      {{- end }}
+      {{- if not (kindIs "invalid" $ttl) }}
+      ttlSecondsAfterFinished: {{ $ttl }}
+      {{- end }}
+      template:
+        metadata:
+          labels:
+            {{- $chart_selector_labels | nindent 12 }}
+            cronjob.name: {{ $name | quote }}
+          {{- with (default $.Values.podAnnotations .podAnnotations) }}
+          annotations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+        spec:
+          restartPolicy: {{ default (default "Never" $.Values.jobDefaults.restartPolicy) .restartPolicy }}
+          {{- /* QUAN TRỌNG: terminationGracePeriodSeconds = 0 giúp force kill ngay, không bị stuck ở Terminating */ -}}
+          {{- $gracePeriod := $.Values.jobDefaults.terminationGracePeriodSeconds }}
+          {{- if hasKey . "terminationGracePeriodSeconds" }}
+            {{- $gracePeriod = .terminationGracePeriodSeconds }}
+          {{- end }}
+          {{- if not (kindIs "invalid" $gracePeriod) }}
+          terminationGracePeriodSeconds: {{ $gracePeriod }}
+          {{- end }}
+          {{- $pullSecrets := default $default_image_pull_secrets .imagePullSecrets }}
+          {{- if or $pullSecrets $.Values.dockerConfigJson }}
+          imagePullSecrets:
+            {{- with $pullSecrets }}
+              {{- toYaml . | nindent 12 }}
+            {{- end }}
+            {{- if $.Values.dockerConfigJson }}
+            - name: {{ $chart_name }}-registry
+            {{- end }}
+          {{- end }}
+          {{- if or $.Values.serviceAccount.create $.Values.serviceAccount.name }}
+          serviceAccountName: {{ $service_account_name }}
+          {{- end }}
+          {{- with (default $.Values.podSecurityContext .podSecurityContext) }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: {{ $name }}
+              image: {{ $image | quote }}
+              imagePullPolicy: {{ default $.Values.image.pullPolicy .imagePullPolicy }}
+              {{- with (default $.Values.securityContext .securityContext) }}
+              securityContext:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with .command }}
+              command:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- with .args }}
+              args:
+                {{- toYaml . | nindent 16 }}
+              {{- end }}
+              {{- if $env }}
+              env:
+                {{- toYaml $env | nindent 16 }}
+              {{- end }}
+              {{- /* Hỗ trợ nạp biến môi trường bảo mật từ ConfigMap và Secret */ -}}
+              {{- $envFrom := list }}
+              {{- if $.Values.envConfigMap }}
+                {{- $envFrom = append $envFrom (dict "configMapRef" (dict "name" (print $chart_name "-" $.Values.envConfigMap))) }}
+              {{- end }}
+              {{- if $.Values.envSecret }}
+                {{- $envFrom = append $envFrom (dict "secretRef" (dict "name" (print $chart_name "-" $.Values.envSecret))) }}
+              {{- end }}
+              {{- with $.Values.extraEnvFrom }}
+                {{- $envFrom = concat $envFrom . }}
+              {{- end }}
+              {{- with .extraEnvFrom }}
+                {{- $envFrom = concat $envFrom . }}
+              {{- end }}
+              {{- if $envFrom }}
+              envFrom:
+                {{- toYaml $envFrom | nindent 16 }}
+              {{- end }}
+              resources:
+                {{- toYaml (default $.Values.resources .resources) | nindent 16 }}
+              {{- if or $.Values.customConfigMap $.Values.configMaps $.Values.secrets .extraVolumeMounts }}
+              volumeMounts:
+                {{- if $.Values.customConfigMap }}
+                - mountPath: /configMaps/{{ $.Values.customConfigMap }}
+                  name: {{ $.Values.customConfigMap }}
+                {{- end }}
+                {{- range $cname, $cmap := $.Values.configMaps }}
+                - mountPath: /configMaps/{{ $cname }}
+                  name: {{ $cname }}
+                {{- end }}
+                {{- range $sname, $secret := $.Values.secrets }}
+                - mountPath: /secrets/{{ $sname }}
+                  name: {{ $sname }}
+                {{- end }}
+                {{- with .extraVolumeMounts }}
+                {{- toYaml . | nindent 16 }}
+                {{- end }}
+              {{- end }}
+          {{- with (default $.Values.nodeSelector .nodeSelector) }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with (default $.Values.affinity .affinity) }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with (default $.Values.tolerations .tolerations) }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if or $.Values.customConfigMap $.Values.configMaps $.Values.secrets .extraVolumes }}
+          volumes:
+            {{- if $.Values.customConfigMap }}
+            - name: {{ $.Values.customConfigMap }}
+              configMap:
+                name: {{ $.Values.customConfigMap }}
+            {{- end }}
+            {{- range $cname, $cmap := $.Values.configMaps }}
+            - name: {{ $cname }}
+              configMap:
+                name: {{ print $chart_name "-" $cname }}
+            {{- end }}
+            {{- range $sname, $secret := $.Values.secrets }}
+            - name: {{ $sname }}
+              secret:
+                secretName: {{ print $chart_name "-" $sname }}
+            {{- end }}
+            {{- with .extraVolumes }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- end }}
+{{- end }}

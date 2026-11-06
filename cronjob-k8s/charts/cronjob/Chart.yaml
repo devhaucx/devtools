@@ -1,0 +1,11 @@
+apiVersion: v2
+name: cronjob
+description: Generic Helm chart for Kubernetes CronJobs with auto-cleanup (TTL) and zero-stuck configuration
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - kubernetes
+  - cronjob
+  - batch
+  - helm

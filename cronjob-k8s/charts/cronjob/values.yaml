@@ -1,0 +1,96 @@
+# Default values for cronjobs helm chart.
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Cấu hình image mặc định (dùng chung cho các job nếu job không khai báo image riêng)
+image:
+  registry: ""
+  repository: "busybox"
+  tag: "latest"
+  pullPolicy: "IfNotPresent"
+
+# Image pull secrets nếu kéo image từ private registry
+imagePullSecrets: []
+  # - name: my-registry-secret
+
+# ==============================================================================
+# CẤU HÌNH TỰ ĐỘNG KILL & DỌN DẸP POD (CHỐNG KẸT TERMINATING / COMPLETED)
+# ==============================================================================
+jobDefaults:
+  # 1. CHỐNG KẸT "Completed": Xóa sạch Pod và Job ngay lập tức khi chạy xong (0 = xóa ngay)
+  ttlSecondsAfterFinished: 0
+  
+  # 2. CHỐNG KẸT "Terminating": Không chờ 30s grace period, force terminate ngay lập tức
+  terminationGracePeriodSeconds: 0
+
+  # 3. Lịch sử job: Đặt = 0 để K8s không giữ lại bất kỳ Pod nào ở trạng thái Completed
+  successfulJobsHistoryLimit: 0
+  # Giữ lại tối đa 1 job fail để tiện kiểm tra log khi có sự cố
+  failedJobsHistoryLimit: 1
+
+  # 4. CHỐNG TREO: Tự động kill job nếu script bị đơ, treo mạng quá thời hạn (giây)
+  activeDeadlineSeconds: 1800
+
+  # Số lần thử lại tối đa nếu job thất bại (1 lần thử lại rồi dừng dứt khoát)
+  backoffLimit: 1
+
+  # Chính sách restart: "Never" để tránh kẹt trong vòng lặp restart/CrashLoop
+  restartPolicy: "Never"
+
+  # Chính sách đồng thời khi lịch trùng nhau: Forbid (không cho chạy đè lên nhau)
+  concurrencyPolicy: "Forbid"
+
+  # Múi giờ chạy cronjob (K8s v1.27+)
+  timeZone: "Asia/Ho_Chi_Minh"
+
+# Tài nguyên CPU / RAM mặc định
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Biến môi trường dùng chung cho tất cả các job (name/value)
+env: []
+  # - name: APP_ENV
+  #   value: "production"
+
+# Nạp biến môi trường từ ConfigMap nội bộ của chart (nếu có khai báo configMaps)
+envConfigMap: ""
+
+# Nạp biến môi trường từ Secret nội bộ của chart (nếu có khai báo secrets)
+envSecret: ""
+
+# Nạp biến môi trường bảo mật từ Secret hoặc ConfigMap có sẵn trên cụm K8s
+extraEnvFrom: []
+  # - secretRef:
+  #     name: existing-db-credentials
+
+# Cấu hình ServiceAccount
+serviceAccount:
+  create: false
+  name: ""
+
+# Security Context an toàn mặc định
+podSecurityContext: {}
+securityContext:
+  allowPrivilegeEscalation: false
+
+# Khai báo ConfigMaps hoặc Secrets tạo kèm theo chart (nếu cần)
+configMaps: {}
+secrets: {}
+
+# ==============================================================================
+# KHAI BÁO DANH SÁCH CRONJOBS
+# ==============================================================================
+# Mỗi job chỉ cần khai báo schedule và command.
+# Tất cả cơ chế tự động dọn dẹp (xóa ngay khi xong, chống kẹt Terminating/Completed)
+# sẽ tự động được áp dụng từ jobDefaults.
+jobs:
+  example-task:
+    schedule: "0 1 * * *"
+    command: ["/bin/sh", "-c"]
+    args: ["echo 'Running scheduled task...'; sleep 2; echo 'Done!'"]
