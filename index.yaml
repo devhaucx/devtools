@@ -22,6 +22,22 @@ entries:
   cronjob:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2026-11-06T10:54:49.117598774Z"
+    description: Generic Helm chart for Kubernetes CronJobs with auto-cleanup (TTL)
+      and zero-stuck configuration
+    digest: b282f9e1e8303950c43ee82598d5fbe8efe5063da7672e9749ae725124be1c33
+    keywords:
+    - kubernetes
+    - cronjob
+    - batch
+    - helm
+    name: cronjob
+    type: application
+    urls:
+    - https://github.com/devhaucx/devtools/releases/download/cronjob-0.1.1/cronjob-0.1.1.tgz
+    version: 0.1.1
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2026-11-06T10:44:04.454656787Z"
     description: Generic Helm chart for Kubernetes CronJobs with auto-cleanup (TTL)
       and zero-stuck configuration
@@ -36,4 +52,4 @@ entries:
     urls:
     - https://github.com/devhaucx/devtools/releases/download/cronjob-0.1.0/cronjob-0.1.0.tgz
     version: 0.1.0
-generated: "2026-11-06T10:44:04.454660864Z"
+generated: "2026-11-06T10:54:49.117613993Z"
