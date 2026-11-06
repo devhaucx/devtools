@@ -2,23 +2,6 @@ apiVersion: v1
 entries:
   azure-agent:
   - apiVersion: v2
-    appVersion: v3.1.0-test
-    created: "2026-11-06T11:17:00.000000000Z"
-    description: Helm chart for Azure DevOps Self-Hosted Agent on Kubernetes with Docker-in-Docker sidecar
-    digest: 7c10ac9eccdba1aae03e95959a8654b46236b8b633c45bddccae98eadee49729
-    keywords:
-    - azure-devops
-    - azure-pipelines
-    - tfs
-    - agent
-    - dind
-    - kubernetes
-    name: azure-agent
-    type: application
-    urls:
-    - https://github.com/devhaucx/devtools/releases/download/azure-agent-0.2.0-test/azure-agent-0.2.0-test.tgz
-    version: 0.2.0-test
-  - apiVersion: v2
     appVersion: v3
     created: "2026-11-06T10:44:04.208707497Z"
     description: Helm chart for Azure DevOps Self-Hosted Agent on Kubernetes with
