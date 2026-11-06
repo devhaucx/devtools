@@ -1,0 +1,77 @@
+name: Release Charts
+
+permissions:
+  contents: write
+  packages: write
+  pages: write
+  id-token: write
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'azure-agent-k8s/charts/**'
+      - 'cronjob-k8s/charts/**'
+      - 'cr.yaml'
+  workflow_dispatch:
+
+jobs:
+  release:
+    name: Release & Publish Charts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Package Charts
+        run: |
+          mkdir -p .cr-release-packages
+          helm package azure-agent-k8s/charts/azure-agent -d .cr-release-packages
+          helm package cronjob-k8s/charts/cronjob -d .cr-release-packages
+          ls -la .cr-release-packages
+
+      - name: Publish to GitHub Releases & GitHub Pages
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          config: cr.yaml
+          skip_packaging: "true"
+          skip_existing: "true"
+          pages_branch: gh-pages
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          HELM_EXPERIMENTAL_OCI: "1"
+
+      - name: Login to GitHub Container Registry (GHCR)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Charts to GHCR (OCI Registry)
+        run: |
+          for pkg in .cr-release-packages/*.tgz; do
+            [ -f "$pkg" ] || continue
+            name=$(helm show chart "$pkg" | grep "^name:" | awk '{print $2}')
+            version=$(helm show chart "$pkg" | grep "^version:" | awk '{print $2}')
+            echo "Checking OCI image: oci://ghcr.io/${{ github.repository }}/${name}:${version}..."
+            if helm show chart "oci://ghcr.io/${{ github.repository }}/${name}" --version "${version}" >/dev/null 2>&1; then
+              echo "Version ${version} already exists in GHCR for ${name}. Skipping."
+            else
+              echo "Pushing ${pkg} to GHCR..."
+              helm push "$pkg" "oci://ghcr.io/${{ github.repository }}" || true
+            fi
+          done

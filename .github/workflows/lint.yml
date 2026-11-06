@@ -1,0 +1,26 @@
+name: Helm Lint & Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-test:
+    name: Lint & Template Charts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Run Lint via Makefile
+        run: make lint
+
+      - name: Test Template Rendering via Makefile
+        run: make template
