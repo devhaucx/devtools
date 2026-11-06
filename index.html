@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevTools - Kubernetes Helm Charts</title>
+  <link rel="icon" href="https://helm.sh/img/helm.svg" type="image/svg+xml">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --code-bg: #0b1120;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      padding: 2rem 1rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      width: 72px;
+      height: 72px;
+      margin-bottom: 1rem;
+    }
+    h1 {
+      font-size: 2.25rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .tagline {
+      color: var(--text-muted);
+      font-size: 1.125rem;
+      max-width: 600px;
+      margin: 0 auto 1.5rem auto;
+    }
+    .badges {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .badge:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .quickstart {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      overflow-x: auto;
+      margin-top: 0.75rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .chart-version {
+      font-size: 0.75rem;
+      background: #0284c7;
+      color: #fff;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+    .card-desc {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+      flex-grow: 1;
+    }
+    .card-footer {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .card-footer a:hover {
+      text-decoration: underline;
+    }
+    footer {
+      text-align: center;
+      padding-top: 2rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      border-top: 1px solid var(--border);
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <img src="https://helm.sh/img/helm.svg" alt="Helm Logo" class="logo">
+      <h1>DevTools Helm Charts</h1>
+      <p class="tagline">Production-ready, security-hardened Kubernetes Helm Charts and DevOps utilities.</p>
+      <div class="badges">
+        <a href="https://github.com/devhaucx/devtools" class="badge">
+          <svg height="16" width="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          GitHub Repository
+        </a>
+        <a href="index.yaml" class="badge">📄 index.yaml</a>
+        <a href="https://github.com/devhaucx/devtools/releases" class="badge">📦 Releases</a>
+      </div>
+    </header>
+
+    <div class="quickstart">
+      <h2 class="section-title">⚡ Quick Start</h2>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">Add this Helm repository to your local CLI to search and install charts:</p>
+      <pre><code>helm repo add devtools https://devhaucx.github.io/devtools
+helm repo update
+helm search repo devtools</code></pre>
+    </div>
+
+    <h2 class="section-title">📦 Available Charts</h2>
+    <div class="grid">
+      <!-- Card 1: azure-agent -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">azure-agent</h3>
+          <span class="chart-version">v0.1.0</span>
+        </div>
+        <p class="card-desc">
+          Self-hosted Azure DevOps / TFS Agent on Kubernetes with Docker-in-Docker (DinD) sidecar. Supports container image builds, helm deployments, and kubectl commands directly from pipelines.
+        </p>
+        <pre><code>helm install my-agent devtools/azure-agent \
+  --namespace devops --create-namespace</code></pre>
+        <div class="card-footer">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">App Version: v3</span>
+          <a href="https://github.com/devhaucx/devtools/tree/main/azure-agent-k8s">Documentation &rarr;</a>
+        </div>
+      </div>
+
+      <!-- Card 2: cronjob -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">cronjob</h3>
+          <span class="chart-version">v0.1.0</span>
+        </div>
+        <p class="card-desc">
+          Production-ready Kubernetes CronJobs chart with zero-stuck auto-cleanup (TTL: 0, GracePeriod: 0). Centralized defaults, non-privileged security contexts, and safe secret injection.
+        </p>
+        <pre><code>helm install my-cronjob devtools/cronjob \
+  --namespace devops --create-namespace</code></pre>
+        <div class="card-footer">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">App Version: 1.0.0</span>
+          <a href="https://github.com/devhaucx/devtools/tree/main/cronjob-k8s">Documentation &rarr;</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="quickstart">
+      <h2 class="section-title">🐳 OCI Registry (GHCR)</h2>
+      <p style="color: var(--text-muted); font-size: 0.95rem;">You can also install charts directly without adding a repository via OCI:</p>
+      <pre><code>helm install my-agent oci://ghcr.io/devhaucx/devtools/azure-agent --version 0.1.0
+helm install my-cronjob oci://ghcr.io/devhaucx/devtools/cronjob --version 0.1.0</code></pre>
+    </div>
+
+    <footer>
+      <p>Maintained by <a href="https://github.com/devhaucx">devhaucx</a>. Released under the MIT License.</p>
+    </footer>
+  </div>
+</body>
+</html>
